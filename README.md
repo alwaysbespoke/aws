@@ -1,2 +1,2 @@
 # aws
-Go library for various aws services
+Go library for various AWS services
