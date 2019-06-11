@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -27,6 +28,33 @@ func ListKeys(awsSession *session.Session, callback func(key string), bucket str
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2Output), bucket string, prefix string) error {
+	svc := s3.New(awsSession)
+	inputparams := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(1000),
+	}
+	result, err := svc.ListObjectsV2(inputparams)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				//fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
+			default:
+				//fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			//fmt.Println(err.Error())
+		}
+		return nil
+	}
+	callback(result)
 	return nil
 }
 
