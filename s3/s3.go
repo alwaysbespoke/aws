@@ -36,7 +36,8 @@ func ListKeys(awsSession *session.Session, callback func(key string), bucket str
 //
 // Lists all keys for a specific bucket and prefix without paging and
 // returns each key via a callback arg
-func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2Output), bucket string, prefix string) error {
+// returns the first 1000 keys and no more
+func ListObjects(awsSession *session.Session, callback func(key string), bucket string, prefix string) error {
 	svc := s3.New(awsSession)
 	inputparams := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
@@ -47,7 +48,10 @@ func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2O
 	if err != nil {
 		return err
 	}
-	callback(result)
+	// skip over the first value as it is the prefix
+	for i := 1; i < len(result.Contents); i++ {
+		callback(*result.Contents[i].Key)
+	}
 	return nil
 }
 
