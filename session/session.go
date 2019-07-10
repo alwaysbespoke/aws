@@ -5,6 +5,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
+// New...
+//
+// Returns a new AWS session
 func New(region string) (*session.Session, error) {
 	awsSession, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),

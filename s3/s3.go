@@ -1,16 +1,18 @@
 package s3
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+// ListKeys ...
+//
+// Lists all keys for a specific bucket and prefix with paging and
+// returns each key via a callback arg
 func ListKeys(awsSession *session.Session, callback func(key string), bucket string, prefix string) error {
 	svc := s3.New(awsSession)
 	inputparams := &s3.ListObjectsV2Input{
@@ -18,9 +20,7 @@ func ListKeys(awsSession *session.Session, callback func(key string), bucket str
 		Prefix:  aws.String(prefix),
 		MaxKeys: aws.Int64(1000),
 	}
-	pageNum := 0
 	err := svc.ListObjectsV2Pages(inputparams, func(page *s3.ListObjectsV2Output, lastPage bool) bool {
-		pageNum++
 		for _, value := range page.Contents {
 			callback(*value.Key)
 		}
@@ -32,6 +32,10 @@ func ListKeys(awsSession *session.Session, callback func(key string), bucket str
 	return nil
 }
 
+// ListObjects ...
+//
+// Lists all keys for a specific bucket and prefix without paging and
+// returns each key via a callback arg
 func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2Output), bucket string, prefix string) error {
 	svc := s3.New(awsSession)
 	inputparams := &s3.ListObjectsV2Input{
@@ -41,24 +45,15 @@ func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2O
 	}
 	result, err := svc.ListObjectsV2(inputparams)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeNoSuchBucket:
-				//fmt.Println(s3.ErrCodeNoSuchBucket, aerr.Error())
-			default:
-				//fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			//fmt.Println(err.Error())
-		}
-		return nil
+		return err
 	}
 	callback(result)
 	return nil
 }
 
+// Download ...
+//
+// Downloads an object
 func Download(awsSession *session.Session, bucket string, key string) ([]byte, error) {
 	file := aws.NewWriteAtBuffer([]byte{})
 	downloader := s3manager.NewDownloader(awsSession)
@@ -67,13 +62,15 @@ func Download(awsSession *session.Session, bucket string, key string) ([]byte, e
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	fmt.Println(downloader)
 	if err != nil {
 		return nil, err
 	}
 	return file.Bytes(), nil
 }
 
+// Upload ...
+//
+// Uploads an object
 func Upload(file io.Reader, awsSession *session.Session, bucket string, key string) error {
 	uploader := s3manager.NewUploader(awsSession)
 	_, err := uploader.Upload(&s3manager.UploadInput{
