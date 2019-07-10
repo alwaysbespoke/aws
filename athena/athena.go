@@ -18,12 +18,12 @@ const (
 
 // InputParams ...
 type InputParams struct {
-	awsSession   *session.Session
-	database     *string
-	queryString  *string
-	region       *string
-	outputBucket *string
-	athenaClient *athena.Athena
+	AwsSession   *session.Session
+	Database     *string
+	QueryString  *string
+	Region       *string
+	OutputBucket *string
+	AthenaClient *athena.Athena
 }
 
 // Query ...
@@ -43,6 +43,7 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 
 	var err error
 	var q Query
+	q.inputParams = inputParams
 
 	// build query
 	q.buildQuery()
@@ -81,37 +82,37 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 func (q *Query) buildQuery() {
 
 	// set query string
-	q.startInput.SetQueryString(*q.inputParams.queryString)
+	q.startInput.SetQueryString(*q.inputParams.QueryString)
 
 	// set context
 	var queryExecutionContext athena.QueryExecutionContext
-	queryExecutionContext.SetDatabase(*q.inputParams.database)
+	queryExecutionContext.SetDatabase(*q.inputParams.Database)
 	q.startInput.SetQueryExecutionContext(&queryExecutionContext)
 
 	// set result configuration
 	var resultConfig athena.ResultConfiguration
-	resultConfig.SetOutputLocation(PROTOCOL + *q.inputParams.outputBucket)
+	resultConfig.SetOutputLocation(PROTOCOL + *q.inputParams.OutputBucket)
 	q.startInput.SetResultConfiguration(&resultConfig)
 
 }
 
 func (q *Query) getClient() {
 
-	if q.inputParams.awsSession == nil {
+	if q.inputParams.AwsSession == nil {
 
 		// configure AWS session
 		awsConfig := &aws.Config{}
-		awsConfig.WithRegion(*q.inputParams.region)
+		awsConfig.WithRegion(*q.inputParams.Region)
 
 		// start AWS session
-		q.inputParams.awsSession = session.Must(session.NewSession(awsConfig))
+		q.inputParams.AwsSession = session.Must(session.NewSession(awsConfig))
 
 	}
 
-	if q.inputParams.athenaClient == nil {
+	if q.inputParams.AthenaClient == nil {
 
 		// instantiate Athena client
-		q.inputParams.athenaClient = athena.New(q.inputParams.awsSession, aws.NewConfig().WithRegion(*q.inputParams.region))
+		q.inputParams.AthenaClient = athena.New(q.inputParams.AwsSession, aws.NewConfig().WithRegion(*q.inputParams.Region))
 
 	}
 
@@ -119,7 +120,7 @@ func (q *Query) getClient() {
 
 func (q *Query) startQuery() error {
 	var err error
-	q.startOutput, err = q.inputParams.athenaClient.StartQueryExecution(&q.startInput)
+	q.startOutput, err = q.inputParams.AthenaClient.StartQueryExecution(&q.startInput)
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func (q *Query) pollOutput() error {
 	var err error
 
 	for {
-		q.getOutput, err = q.inputParams.athenaClient.GetQueryExecution(&q.getInput)
+		q.getOutput, err = q.inputParams.AthenaClient.GetQueryExecution(&q.getInput)
 		if err != nil {
 			return err
 		}
@@ -161,7 +162,7 @@ func (q *Query) handleSuccess() error {
 	var getQueryResultsInput athena.GetQueryResultsInput
 	getQueryResultsInput.SetQueryExecutionId(*q.startOutput.QueryExecutionId)
 	var err error
-	q.results, err = q.inputParams.athenaClient.GetQueryResults(&getQueryResultsInput)
+	q.results, err = q.inputParams.AthenaClient.GetQueryResults(&getQueryResultsInput)
 	if err != nil {
 		return err
 	}
