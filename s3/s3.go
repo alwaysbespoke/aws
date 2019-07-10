@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -61,10 +62,12 @@ func ListObjects(awsSession *session.Session, callback func(r *s3.ListObjectsV2O
 func Download(awsSession *session.Session, bucket string, key string) ([]byte, error) {
 	file := aws.NewWriteAtBuffer([]byte{})
 	downloader := s3manager.NewDownloader(awsSession)
+	downloader.Concurrency = 20
 	_, err := downloader.Download(file, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
+	fmt.Println(downloader)
 	if err != nil {
 		return nil, err
 	}
