@@ -134,6 +134,8 @@ func (q *Query) pollOutput() error {
 	var err error
 
 	for {
+
+		// get output
 		q.getOutput, err = q.inputParams.AthenaClient.GetQueryExecution(&q.getInput)
 		if err != nil {
 			return err
