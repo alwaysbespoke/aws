@@ -45,11 +45,27 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 	var q Query
 	q.inputParams = inputParams
 
+	// check nil pointers
+	stringPointers := []*string{
+		inputParams.Database,
+		inputParams.QueryString,
+		inputParams.Region,
+		inputParams.OutputBucket,
+	}
+	for _, pointer := range stringPointers {
+		if pointer == nil {
+			return nil, errors.New("Nil pointer in input params")
+		}
+	}
+
 	// build query
 	q.buildQuery()
 
-	// get client
-	q.getClient()
+	// create client
+	err = q.createClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// start query
 	err = q.startQuery()
@@ -96,7 +112,7 @@ func (q *Query) buildQuery() {
 
 }
 
-func (q *Query) getClient() {
+func (q *Query) createClient() error {
 
 	if q.inputParams.AwsSession == nil {
 
@@ -105,7 +121,11 @@ func (q *Query) getClient() {
 		awsConfig.WithRegion(*q.inputParams.Region)
 
 		// start AWS session
-		q.inputParams.AwsSession = session.Must(session.NewSession(awsConfig))
+		var err error
+		q.inputParams.AwsSession, err = session.NewSession(awsConfig)
+		if err != nil {
+			return err
+		}
 
 	}
 
@@ -115,6 +135,8 @@ func (q *Query) getClient() {
 		q.inputParams.AthenaClient = athena.New(q.inputParams.AwsSession, aws.NewConfig().WithRegion(*q.inputParams.Region))
 
 	}
+
+	return nil
 
 }
 
