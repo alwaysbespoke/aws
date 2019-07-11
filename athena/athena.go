@@ -58,8 +58,8 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 		}
 	}
 
-	// build query
-	q.buildQuery()
+	// create query
+	q.createQuery()
 
 	// create client
 	err = q.createClient()
@@ -74,7 +74,7 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 	}
 
 	// wait for query to process
-	err = q.pollOutput()
+	err = q.pollQueryState()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func QueryAthena(inputParams *InputParams) ([]*athena.Row, error) {
 
 }
 
-func (q *Query) buildQuery() {
+func (q *Query) createQuery() {
 
 	// set query string
 	q.startInput.SetQueryString(*q.inputParams.QueryString)
@@ -149,7 +149,7 @@ func (q *Query) startQuery() error {
 	return nil
 }
 
-func (q *Query) pollOutput() error {
+func (q *Query) pollQueryState() error {
 
 	q.getInput.SetQueryExecutionId(*q.startOutput.QueryExecutionId)
 
