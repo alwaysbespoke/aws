@@ -87,3 +87,19 @@ func Upload(file io.Reader, awsSession *session.Session, bucket string, key stri
 	}
 	return nil
 }
+
+// Delete ...
+//
+// Deletes an object
+func Delete(awsSession *session.Session, bucket string, key string) error {
+	svc := s3.New(session.New())
+	input := &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+	_, err := svc.DeleteObject(input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
