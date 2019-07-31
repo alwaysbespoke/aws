@@ -9,11 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-// ListKeys ...
+// ListObjectsPages ...
 //
 // Lists all keys for a specific bucket and prefix with paging and
 // returns each key via a callback arg
-func ListKeys(awsSession *session.Session, callback func(key string), bucket string, prefix string) error {
+func ListObjectsPages(awsSession *session.Session, bucket string, prefix string, callback func(key string)) error {
 	svc := s3.New(awsSession)
 	inputparams := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
@@ -37,7 +37,7 @@ func ListKeys(awsSession *session.Session, callback func(key string), bucket str
 // Lists all keys for a specific bucket and prefix without paging and
 // returns each key via a callback arg
 // returns the first 1000 keys and no more
-func ListObjects(awsSession *session.Session, callback func(key string), bucket string, prefix string) error {
+func ListObjects(awsSession *session.Session, bucket string, prefix string, callback func(key string)) error {
 	svc := s3.New(awsSession)
 	inputparams := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
@@ -55,10 +55,10 @@ func ListObjects(awsSession *session.Session, callback func(key string), bucket 
 	return nil
 }
 
-// Download ...
+// DownloadObject ...
 //
 // Downloads an object
-func Download(awsSession *session.Session, bucket string, key string) ([]byte, error) {
+func DownloadObject(awsSession *session.Session, bucket string, key string) ([]byte, error) {
 	file := aws.NewWriteAtBuffer([]byte{})
 	downloader := s3manager.NewDownloader(awsSession)
 	downloader.Concurrency = 20
@@ -72,10 +72,10 @@ func Download(awsSession *session.Session, bucket string, key string) ([]byte, e
 	return file.Bytes(), nil
 }
 
-// Upload ...
+// UploadObject ...
 //
 // Uploads an object
-func Upload(file io.Reader, awsSession *session.Session, bucket string, key string) error {
+func UploadObject(file io.Reader, awsSession *session.Session, bucket string, key string) error {
 	uploader := s3manager.NewUploader(awsSession)
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
@@ -88,11 +88,11 @@ func Upload(file io.Reader, awsSession *session.Session, bucket string, key stri
 	return nil
 }
 
-// Delete ...
+// DeleteObject ...
 //
 // Deletes an object
-func Delete(awsSession *session.Session, bucket string, key string) error {
-	svc := s3.New(session.New())
+func DeleteObject(awsSession *session.Session, bucket string, key string) error {
+	svc := s3.New(awsSession)
 	input := &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -102,4 +102,32 @@ func Delete(awsSession *session.Session, bucket string, key string) error {
 		return err
 	}
 	return nil
+}
+
+type DeleteDirectoryJob struct {
+	awsSession *session.Session
+	bucket     string
+	errs       []error
+}
+
+// DeleteDirectory ...
+//
+// Deletes all objects within a specified directory
+func DeleteDirectory(awsSession *session.Session, bucket string, prefix string) ([]error, error) {
+	var j DeleteDirectoryJob
+	j.awsSession = awsSession
+	j.bucket = bucket
+	err := ListObjectsPages(awsSession, bucket, prefix, j.deleteDirectoryCallback)
+	if err != nil {
+		return nil, err
+	}
+	return j.errs, nil
+}
+
+func (j *DeleteDirectoryJob) deleteDirectoryCallback(key string) {
+	err := DeleteObject(j.awsSession, j.bucket, key)
+	if err != nil {
+		j.errs = append(j.errs, err)
+		return
+	}
 }
