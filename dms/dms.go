@@ -79,8 +79,39 @@ func StartReplicationTask(awsSession *session.Session, arn string) error {
 	svc := databasemigrationservice.New(awsSession)
 	input := &databasemigrationservice.StartReplicationTaskInput{
 		ReplicationTaskArn: aws.String(arn),
-		//StartReplicationTaskType: aws.String("start-replication"),
+		StartReplicationTaskType: aws.String("start-replication"),
+	}
+	_, err := svc.StartReplicationTask(input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ResumeReplicationTask ...
+//
+// Todo
+func ResumeReplicationTask(awsSession *session.Session, arn string) error {
+	svc := databasemigrationservice.New(awsSession)
+	input := &databasemigrationservice.StartReplicationTaskInput{
+		ReplicationTaskArn: aws.String(arn),
 		StartReplicationTaskType: aws.String("resume-processing"),
+	}
+	_, err := svc.StartReplicationTask(input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReloadReplicationTask ...
+//
+// Todo
+func ReloadReplicationTask(awsSession *session.Session, arn string) error {
+	svc := databasemigrationservice.New(awsSession)
+	input := &databasemigrationservice.StartReplicationTaskInput{
+		ReplicationTaskArn: aws.String(arn),
+		StartReplicationTaskType: aws.String("reload-target"),
 	}
 	_, err := svc.StartReplicationTask(input)
 	if err != nil {
